@@ -19,39 +19,87 @@ def safe_download(symbol_list, period, interval, max_retries=3, sleep_time=2):
     """
     Safely download data with error handling and retries
     """
-    for attempt in range(max_retries):
-        try:
-            logger.debug(f"Downloading data for {len(symbol_list)} symbols, period={period}, attempt {attempt+1}")
-            data = yf.download(
-                symbol_list, 
-                period=period, 
-                interval=interval,
-                progress=False,
-                group_by='ticker',
-                threads=False,  # Disable threading to avoid connection issues
-                timeout=30
-            )
-            
-            # For single symbol, the structure is different
-            if len(symbol_list) == 1:
-                symbol = symbol_list[0]
-                data = pd.DataFrame({symbol: data["Adj Close"]})
-            else:
-                # Extract only the Adj Close column from the multi-level DataFrame
-                data = data.xs("Adj Close", axis=1, level=1, drop_level=True)
-            
-            logger.debug(f"Successfully downloaded data, shape: {data.shape}")
-            return data
-            
-        except Exception as e:
-            logger.error(f"Error downloading data (attempt {attempt+1}/{max_retries}): {str(e)}")
-            if attempt < max_retries - 1:
-                logger.debug(f"Retrying in {sleep_time} seconds...")
-                time.sleep(sleep_time)
-            else:
-                logger.warning("Max retries reached, returning empty dataframe")
-                # Return an empty dataframe with the expected columns
-                return pd.DataFrame(columns=symbol_list)
+    # Reduce the batch size to avoid overwhelming the API
+    batch_size = 5
+    all_data = pd.DataFrame()
+    
+    # Create batches of symbols
+    symbol_batches = [symbol_list[i:i + batch_size] for i in range(0, len(symbol_list), batch_size)]
+    logger.info(f"Downloading data in {len(symbol_batches)} batches of size {batch_size}")
+    
+    for batch_idx, batch in enumerate(symbol_batches):
+        logger.info(f"Processing batch {batch_idx+1}/{len(symbol_batches)}: {batch}")
+        
+        for attempt in range(max_retries):
+            try:
+                logger.debug(f"Downloading batch {batch_idx+1}, period={period}, attempt {attempt+1}")
+                
+                # Download data for this batch
+                batch_data = yf.download(
+                    batch, 
+                    period=period, 
+                    interval=interval,
+                    progress=False,
+                    group_by='ticker',
+                    threads=False,  # Disable threading to avoid connection issues
+                    timeout=30
+                )
+                
+                # Handle different data structures based on batch size
+                if len(batch) == 1:
+                    # For single symbol, the structure is different
+                    symbol = batch[0]
+                    if "Adj Close" in batch_data.columns:
+                        single_data = pd.DataFrame({symbol: batch_data["Adj Close"]})
+                    else:
+                        # If Adj Close not available, try Close
+                        single_data = pd.DataFrame({symbol: batch_data["Close"] if "Close" in batch_data.columns else []})
+                    
+                    # Merge with existing data
+                    if all_data.empty:
+                        all_data = single_data
+                    else:
+                        all_data = pd.concat([all_data, single_data], axis=1)
+                else:
+                    # For multiple symbols, extract required data
+                    try:
+                        batch_price_data = batch_data.xs("Adj Close", axis=1, level=1, drop_level=True)
+                    except Exception as e:
+                        logger.warning(f"Could not extract Adj Close, trying Close: {str(e)}")
+                        try:
+                            batch_price_data = batch_data.xs("Close", axis=1, level=1, drop_level=True)
+                        except Exception:
+                            logger.error("Could not extract Close prices either, creating empty DataFrame")
+                            batch_price_data = pd.DataFrame(columns=batch)
+                    
+                    # Merge with existing data
+                    if all_data.empty:
+                        all_data = batch_price_data
+                    else:
+                        all_data = pd.concat([all_data, batch_price_data], axis=1)
+                
+                # Successfully processed this batch
+                break
+                
+            except Exception as e:
+                logger.error(f"Error downloading batch {batch_idx+1} (attempt {attempt+1}/{max_retries}): {str(e)}")
+                if attempt < max_retries - 1:
+                    logger.debug(f"Retrying in {sleep_time} seconds...")
+                    time.sleep(sleep_time)
+                else:
+                    logger.warning(f"Max retries reached for batch {batch_idx+1}, skipping")
+        
+        # Small delay between batches to avoid rate limiting
+        time.sleep(1)
+    
+    logger.info(f"Download completed, final data shape: {all_data.shape}")
+    
+    # Fill any missing tickers with empty columns
+    for symbol in symbol_list:
+        if symbol not in all_data.columns:
+            all_data[symbol] = np.nan
+    
+    return all_data
 
 def get_momentum_data():
     """

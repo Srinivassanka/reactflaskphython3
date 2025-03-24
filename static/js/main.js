@@ -28,6 +28,45 @@ function StockList({ title, stocks, type }) {
         }
     };
 
+    // Check if stocks is empty or doesn't exist
+    if (!stocks || Object.keys(stocks).length === 0) {
+        return (
+            <div className="card mb-4">
+                <div className="card-header">
+                    <h5>{title}</h5>
+                </div>
+                <div className="card-body">
+                    <div className="alert alert-warning mb-0">
+                        <p className="mb-0">No data available for this time period</p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+    
+    // Check if we have error or info indicators ("Error" or "Info" keys)
+    if (stocks.hasOwnProperty("Error") || stocks.hasOwnProperty("Info")) {
+        return (
+            <div className="card mb-4">
+                <div className="card-header">
+                    <h5>{title}</h5>
+                </div>
+                <div className="card-body">
+                    <div className="alert alert-warning mb-0">
+                        <p className="mb-0">
+                            <i className="fas fa-exclamation-triangle me-2"></i>
+                            Unable to retrieve stock data for this time period
+                        </p>
+                        <p className="small mb-0 mt-2">
+                            The Yahoo Finance API may be experiencing issues or rate limiting.
+                            Please try again later or select a different time period.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="card mb-4">
             <div className="card-header">
@@ -62,6 +101,35 @@ function StockList({ title, stocks, type }) {
 // Comparison Component
 function ComparisonAnalysis({ comparison }) {
     if (!comparison) return null;
+    
+    // Check if comparison data is empty (all empty arrays)
+    const isEmpty = 
+        comparison.dropped_from_top_10.length === 0 && 
+        comparison.entered_top_10.length === 0 &&
+        comparison.full_5d_top_10.length === 0 && 
+        comparison.full_3mo_top_10.length === 0;
+    
+    if (isEmpty) {
+        return (
+            <div className="card mb-4">
+                <div className="card-header">
+                    <h4>Momentum Comparison (5d vs 3mo)</h4>
+                </div>
+                <div className="card-body">
+                    <div className="alert alert-warning mb-0">
+                        <p className="mb-0">
+                            <i className="fas fa-exclamation-triangle me-2"></i>
+                            Unable to retrieve comparison data
+                        </p>
+                        <p className="small mb-0 mt-2">
+                            The Yahoo Finance API may be experiencing issues. 
+                            Data for the comparison period could not be loaded.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
     
     return (
         <div className="card mb-4">
@@ -279,10 +347,75 @@ function App() {
     // Handle case where there's an error message in the data
     if (data.error) {
         return (
-            <div className="alert alert-warning">
-                <h4 className="alert-heading">Data Load Issue</h4>
-                <p>{data.error}</p>
-                <p>Showing partial or fallback data. Some information may be missing.</p>
+            <div>
+                <div className="alert alert-warning mb-4">
+                    <h4 className="alert-heading">Data Load Issue</h4>
+                    <p>{data.error}</p>
+                    <p>Showing partial or fallback data. Some information may be missing.</p>
+                    <div className="mt-3">
+                        <button 
+                            className="btn btn-primary"
+                            onClick={() => {
+                                setLoading(true);
+                                fetch('/api/momentum-analysis')
+                                    .then(response => {
+                                        if (!response.ok) {
+                                            throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+                                        }
+                                        return response.json();
+                                    })
+                                    .then(data => {
+                                        setData(data);
+                                        setLoading(false);
+                                    })
+                                    .catch(error => {
+                                        console.error('Error:', error);
+                                        setError(error.message || 'An error occurred while fetching data.');
+                                        setLoading(false);
+                                    });
+                            }}
+                        >
+                            <i className="fas fa-sync-alt me-2"></i> Retry
+                        </button>
+                    </div>
+                </div>
+                
+                <div className="alert alert-info mb-4">
+                    <h4 className="alert-heading"><i className="fas fa-info-circle"></i> About This Tool</h4>
+                    <p>This analysis tool shows momentum for Nifty 100 stocks across different time periods. It helps identify which stocks are trending up or down based on price movements.</p>
+                </div>
+                
+                <ComparisonAnalysis comparison={data.comparison} />
+                
+                <div className="card mb-4">
+                    <div className="card-header">
+                        <h4><i className="fas fa-chart-line"></i> Momentum Analysis</h4>
+                    </div>
+                    <div className="card-body">
+                        <ul className="nav nav-tabs" role="tablist">
+                            {durations.map(duration => (
+                                <DurationTab 
+                                    key={duration} 
+                                    duration={duration} 
+                                    data={data[duration]} 
+                                    activeTab={activeTab} 
+                                    setActiveTab={setActiveTab} 
+                                />
+                            ))}
+                        </ul>
+                        
+                        <div className="tab-content mt-3">
+                            {durations.map(duration => (
+                                <DurationContent 
+                                    key={duration} 
+                                    duration={duration} 
+                                    data={data[duration]} 
+                                    isActive={activeTab === duration} 
+                                />
+                            ))}
+                        </div>
+                    </div>
+                </div>
             </div>
         );
     }

@@ -64,10 +64,17 @@ def momentum_analysis():
     Run the Nifty 100 momentum analysis and return the results.
     """
     try:
-        logger.debug("Starting momentum analysis")
+        logger.info("Starting momentum analysis")
         # Set a longer timeout for this request as it may take time to fetch data
         results = momentumnifty100.get_momentum_data()
         logger.debug("Momentum analysis completed successfully")
+        
+        # Check if there's an error in the results
+        if "error" in results:
+            logger.warning(f"Momentum analysis returned with error: {results['error']}")
+            # Still return 200 status since we have partial data
+            return jsonify(results)
+            
         return jsonify(results)
     except Exception as e:
         error_message = str(e)
