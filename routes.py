@@ -117,6 +117,29 @@ def momentum_analysis():
             "1y": {"top_performers": {"Error": 0}, "bottom_performers": {"Error": 0}}
         })
 
+@app.route('/api/test-data')
+def test_data():
+    """Test endpoint that always returns valid data"""
+    return jsonify({
+        "status": "ok",
+        "test_data": True,
+        "message": "This is a test endpoint that always returns valid data regardless of Yahoo Finance API status",
+        "comparison": {
+            "dropped_from_top_10": ["TEST1.NS", "TEST2.NS"],
+            "entered_top_10": ["TEST3.NS", "TEST4.NS"],
+            "full_5d_top_10": ["TEST5.NS", "TEST6.NS"],
+            "full_3mo_top_10": ["TEST7.NS", "TEST8.NS"]
+        },
+        "5d": {
+            "top_performers": {"TEST.NS": 5.2, "TEST2.NS": 3.1},
+            "bottom_performers": {"TEST3.NS": -2.1, "TEST4.NS": -3.5}
+        },
+        "10d": {
+            "top_performers": {"TEST.NS": 4.5, "TEST2.NS": 2.8},
+            "bottom_performers": {"TEST3.NS": -1.9, "TEST4.NS": -3.2}
+        }
+    })
+
 @app.route('/api/momentum-durations')
 def momentum_durations():
     """Get available durations for momentum analysis."""

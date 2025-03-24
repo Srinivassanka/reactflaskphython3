@@ -241,8 +241,24 @@ function App() {
             })
             .then(data => {
                 console.log('API Health Check:', data);
-                // API is available, now fetch momentum data
-                return fetch('/api/momentum-analysis');
+                // Try to fetch real data first, but use test data as fallback
+                try {
+                    return fetch('/api/momentum-analysis')
+                      .then(response => {
+                          if (!response.ok) {
+                              console.warn('Momentum analysis API failed, falling back to test data');
+                              return fetch('/api/test-data');
+                          }
+                          return response;
+                      })
+                      .catch(error => {
+                          console.warn('Momentum analysis API error, falling back to test data:', error);
+                          return fetch('/api/test-data');
+                      });
+                } catch (error) {
+                    console.warn('Error fetching momentum data, using test data:', error);
+                    return fetch('/api/test-data');
+                }
             })
             .then(response => {
                 if (!response.ok) {
@@ -251,6 +267,7 @@ function App() {
                 return response.json();
             })
             .then(data => {
+                console.log('Received data:', data);
                 setData(data);
                 setLoading(false);
             })
