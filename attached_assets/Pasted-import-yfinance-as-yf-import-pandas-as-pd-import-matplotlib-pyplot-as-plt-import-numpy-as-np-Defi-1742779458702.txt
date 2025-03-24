@@ -1,0 +1,130 @@
+import yfinance as yf
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Define symbols from the image
+symbols = [
+    "ABB.NS", "ADANIENSOL.NS", "ADANIENT.NS", "ADANIGREEN.NS", "ADANIPORTS.NS",
+    "ADANIPOWER.NS", "ATGL.NS", "AMBUJACEM.NS", "APOLLOHOSP.NS",
+    "ASIANPAINT.NS", "DMART.NS", "AXISBANK.NS", "BAJAJ-AUTO.NS",
+    "BAJFINANCE.NS", "BAJAJFINSV.NS", "BAJAJHLDNG.NS", "BANKBARODA.NS",
+    "BERGEPAINT.NS", "BEL.NS", "BPCL.NS", "BHARTIARTL.NS", "BOSCHLTD.NS",
+    "BRITANNIA.NS", "CANBK.NS", "CHOLAFIN.NS", "CIPLA.NS", "COALINDIA.NS",
+    "COLPAL.NS", "DLF.NS", "DABUR.NS", "DIVISLAB.NS", "DRREDDY.NS",
+    "EICHERMOT.NS", "GAIL.NS", "GODREJCP.NS", "GRASIM.NS", "HCLTECH.NS",
+    "HDFCBANK.NS", "HDFCLIFE.NS", "HAVELLS.NS", "HEROMOTOCO.NS", "HINDALCO.NS",
+    "HAL.NS", "HINDUNILVR.NS", "ICICIBANK.NS", "ICICIGI.NS", "ICICIPRULI.NS",
+    "ITC.NS", "IOC.NS", "IRCTC.NS", "IRFC.NS", "INDUSINDBK.NS", "NAUKRI.NS",
+    "INFY.NS", "INDIGO.NS", "JSWSTEEL.NS", "JINDALSTEL.NS", "JIOFIN.NS",
+    "KOTAKBANK.NS", "LTIM.NS", "LT.NS", "LICI.NS", "M&M.NS", "MARICO.NS",
+    "MARUTI.NS", "NTPC.NS", "NESTLEIND.NS", "ONGC.NS", "PIDILITIND.NS",
+    "PFC.NS", "POWERGRID.NS", "PNB.NS", "RECLTD.NS", "RELIANCE.NS",
+    "SBICARD.NS", "SBILIFE.NS", "SRF.NS", "MOTHERSON.NS", "SHREECEM.NS",
+    "SHRIRAMFIN.NS", "SIEMENS.NS", "SBIN.NS", "SUNPHARMA.NS", "TVSMOTOR.NS",
+    "TCS.NS", "TATACONSUM.NS", "TATAMTRDVR.NS", "TATAMOTORS.NS",
+    "TATAPOWER.NS", "TATASTEEL.NS", "TECHM.NS", "TITAN.NS", "TORNTPHARM.NS",
+    "TRENT.NS", "ULTRACEMCO.NS", "MCDOWELL-N.NS", "VBL.NS", "VEDL.NS",
+    "WIPRO.NS", "ZOMATO.NS", "ZYDUSLIFE.NS"
+]
+print(len(symbols))
+# data = yf.download(symbols, period="1y", interval="1d")["Close"]
+# Get 5d momentum
+duration = "5d"
+data = yf.download(symbols, period=duration, interval="1d")["Adj Close"]
+change = data.pct_change()
+change2 = (change + 1).prod() - 1
+top_10_5d = set(change2.nlargest(10).index)
+
+# Get 3mo momentum
+data_3mo = yf.download(symbols, period="3mo", interval="1d")["Adj Close"]
+change_3mo = data_3mo.pct_change()
+change2_3mo = (change_3mo + 1).prod() - 1
+top_10_3mo = set(change2_3mo.nlargest(10).index)
+
+# Compare the sets
+dropped_off = top_10_5d - top_10_3mo
+new_entries = top_10_3mo - top_10_5d
+
+print("\nTop 10 Momentum Comparison (5d vs 3mo):")
+print("Stocks that dropped from top 10:", list(dropped_off))
+print("Stocks that entered top 10:", list(new_entries))
+print("\nFull 5d top 10:", list(top_10_5d))
+print("Full 3mo top 10:", list(top_10_3mo))
+
+duration = "5d"
+data = yf.download(symbols, period=duration, interval="1d")["Adj Close"]
+change = data.pct_change()
+change2 = (change + 1).prod() - 1
+change3 = change2.nlargest(30)
+change4 = change2.nsmallest(30)
+# change4 = change3.nlargest(10)
+# data1 = yf.download(symbols, period="1y", interval="1d")["Close"]
+print("the momentum is calculated for the durations of " + duration)
+print(change3)
+print(change4)
+
+duration = "10d"
+data = yf.download(symbols, period=duration, interval="1d")["Adj Close"]
+change = data.pct_change()
+change2 = (change + 1).prod() - 1
+change3 = change2.nlargest(30)
+change4 = change2.nsmallest(30)
+# change4 = change3.nlargest(10)
+
+# data1 = yf.download(symbols, period="1y", interval="1d")["Close"]
+print("the momentum is calculated for the durations of " + duration)
+print(change3)
+print(change4)
+
+duration = "1mo"
+data = yf.download(symbols, period=duration, interval="1d")["Adj Close"]
+change = data.pct_change()
+change2 = (change + 1).prod() - 1
+change3 = change2.nlargest(30)
+change4 = change2.nsmallest(30)
+# change4 = change3.nlargest(10)
+
+# data1 = yf.download(symbols, period="1y", interval="1d")["Close"]
+print("the momentum is calculated for the durations of " + duration)
+print(change3)
+print(change4)
+
+duration = "3mo"
+data = yf.download(symbols, period=duration, interval="1d")["Adj Close"]
+change = data.pct_change()
+change2 = (change + 1).prod() - 1
+change3 = change2.nlargest(30)
+change4 = change2.nsmallest(30)
+# change4 = change3.nlargest(10)
+
+# data1 = yf.download(symbols, period="1y", interval="1d")["Close"]
+print("the momentum is calculated for the durations of " + duration)
+print(change3)
+print(change4)
+
+duration = "6mo"
+data = yf.download(symbols, period=duration, interval="1d")["Adj Close"]
+change = data.pct_change()
+change2 = (change + 1).prod() - 1
+change3 = change2.nlargest(30)
+change4 = change2.nsmallest(30)
+# change4 = change3.nlargest(10)
+
+# data1 = yf.download(symbols, period="1y", interval="1d")["Close"]
+print("the momentum is calculated for the durations of " + duration)
+print(change3)
+print(change4)
+
+duration = "1y"
+data = yf.download(symbols, period=duration, interval="1d")["Adj Close"]
+change = data.pct_change()
+change2 = (change + 1).prod() - 1
+change3 = change2.nlargest(30)
+change4 = change2.nsmallest(30)
+# change4 = change3.nlargest(10)
+
+# data1 = yf.download(symbols, period="1y", interval="1d")["Close"]
+print("the momentum is calculated for the durations of " + duration)
+print(change3)
+print(change4)

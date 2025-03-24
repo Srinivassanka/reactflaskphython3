@@ -1,15 +1,8 @@
-/* Additional custom styles */
+/* Additional custom styles for Nifty 100 Momentum Analysis */
 
-/* Add some padding and space */
+/* Base styles */
 body {
     padding-bottom: 20px;
-}
-
-/* Pre tag styling for results */
-pre {
-    white-space: pre-wrap;       /* Since CSS 2.1 */
-    word-wrap: break-word;       /* Internet Explorer 5.5+ */
-    overflow-x: auto;
 }
 
 /* For spinner display during API call */
@@ -17,36 +10,102 @@ pre {
     margin-right: 5px;
 }
 
-/* Animation for the result card */
-#resultCard {
-    transition: all 0.3s ease-in-out;
-}
-
-/* Style textarea focus */
-textarea:focus, select:focus {
-    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-}
-
-/* Make the buttons more interactive */
-.btn:hover {
-    transform: translateY(-2px);
-    transition: transform 0.2s;
-}
-
-.btn:active {
-    transform: translateY(0);
-}
-
 /* Add a subtle border to cards */
 .card {
     border-radius: 8px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     margin-bottom: 20px;
+    transition: all 0.2s ease-in-out;
+}
+
+.card:hover {
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
 }
 
 .card-header {
     border-top-left-radius: 8px !important;
     border-top-right-radius: 8px !important;
+}
+
+/* Table styles for stock lists */
+.table-responsive {
+    border-radius: 0 0 8px 8px;
+    overflow: hidden;
+}
+
+.table {
+    margin-bottom: 0;
+}
+
+.table th {
+    font-weight: 600;
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.table tbody tr:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Tab styling */
+.nav-tabs {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.nav-tabs .nav-link {
+    border: none;
+    color: var(--bs-secondary);
+    border-bottom: 2px solid transparent;
+    padding: 0.5rem 1rem;
+    margin-right: 0.5rem;
+    transition: all 0.2s ease-in-out;
+}
+
+.nav-tabs .nav-link:hover {
+    border-color: var(--bs-primary);
+    color: var(--bs-light);
+}
+
+.nav-tabs .nav-link.active {
+    border-color: var(--bs-primary);
+    background-color: transparent;
+    color: var(--bs-light);
+    font-weight: 500;
+}
+
+/* Stock performance colors */
+.text-success {
+    color: #00b894 !important;
+}
+
+.text-danger {
+    color: #ff7675 !important;
+}
+
+/* List group styling */
+.list-group-item {
+    background-color: transparent;
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Fade in animation for content */
+.tab-pane.fade.show {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Loading spinner animation */
+.spinner-border {
+    animation-duration: 1s;
 }
 
 /* Better spacing for mobile devices */
@@ -58,5 +117,10 @@ textarea:focus, select:focus {
     
     .card-body {
         padding: 15px;
+    }
+    
+    .nav-tabs .nav-link {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.9rem;
     }
 }

@@ -1,7 +1,9 @@
 import json
 import logging
+import traceback
 from flask import request, jsonify, render_template
 from app import app
+import momentumnifty100
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +57,30 @@ def process_data():
     except Exception as e:
         logger.error(f"Error processing data: {str(e)}")
         return jsonify({"error": str(e)}), 500
+
+@app.route('/api/momentum-analysis')
+def momentum_analysis():
+    """
+    Run the Nifty 100 momentum analysis and return the results.
+    """
+    try:
+        logger.debug("Starting momentum analysis")
+        # Set a longer timeout for this request as it may take time to fetch data
+        results = momentumnifty100.get_momentum_data()
+        logger.debug("Momentum analysis completed successfully")
+        return jsonify(results)
+    except Exception as e:
+        error_message = str(e)
+        stack_trace = traceback.format_exc()
+        logger.error(f"Error in momentum analysis: {error_message}\n{stack_trace}")
+        return jsonify({"error": error_message}), 500
+
+@app.route('/api/momentum-durations')
+def momentum_durations():
+    """Get available durations for momentum analysis."""
+    return jsonify({
+        "durations": ["5d", "10d", "1mo", "3mo", "6mo", "1y"]
+    })
 
 @app.route('/api/health')
 def health_check():
