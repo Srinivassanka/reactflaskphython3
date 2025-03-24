@@ -65,22 +65,57 @@ def momentum_analysis():
     """
     try:
         logger.info("Starting momentum analysis")
-        # Set a longer timeout for this request as it may take time to fetch data
-        results = momentumnifty100.get_momentum_data()
-        logger.debug("Momentum analysis completed successfully")
+        # Create a fallback structure
+        fallback_results = {
+            "error": "Unable to complete analysis",
+            "comparison": {
+                "dropped_from_top_10": [],
+                "entered_top_10": [],
+                "full_5d_top_10": [],
+                "full_3mo_top_10": []
+            }
+        }
         
-        # Check if there's an error in the results
-        if "error" in results:
-            logger.warning(f"Momentum analysis returned with error: {results['error']}")
-            # Still return 200 status since we have partial data
-            return jsonify(results)
+        durations = ["5d", "10d", "1mo", "3mo", "6mo", "1y"]
+        for duration in durations:
+            fallback_results[duration] = {
+                "top_performers": {"Error": 0},
+                "bottom_performers": {"Error": 0}
+            }
+        
+        try:
+            # Set a longer timeout for this request as it may take time to fetch data
+            results = momentumnifty100.get_momentum_data()
+            logger.debug("Momentum analysis completed successfully")
             
-        return jsonify(results)
+            # Check if there's an error in the results
+            if "error" in results:
+                logger.warning(f"Momentum analysis returned with error: {results['error']}")
+                # Still return 200 status since we have partial data
+                return jsonify(results)
+                
+            return jsonify(results)
+        except Exception as e:
+            error_message = str(e)
+            stack_trace = traceback.format_exc()
+            logger.error(f"Error in get_momentum_data: {error_message}\n{stack_trace}")
+            fallback_results["error"] = f"Error processing data: {error_message}"
+            return jsonify(fallback_results)
+            
     except Exception as e:
         error_message = str(e)
         stack_trace = traceback.format_exc()
-        logger.error(f"Error in momentum analysis: {error_message}\n{stack_trace}")
-        return jsonify({"error": error_message}), 500
+        logger.error(f"Error in momentum analysis route: {error_message}\n{stack_trace}")
+        return jsonify({
+            "error": f"Server error: {error_message}",
+            "comparison": {"dropped_from_top_10": [], "entered_top_10": [], "full_5d_top_10": [], "full_3mo_top_10": []},
+            "5d": {"top_performers": {"Error": 0}, "bottom_performers": {"Error": 0}},
+            "10d": {"top_performers": {"Error": 0}, "bottom_performers": {"Error": 0}},
+            "1mo": {"top_performers": {"Error": 0}, "bottom_performers": {"Error": 0}},
+            "3mo": {"top_performers": {"Error": 0}, "bottom_performers": {"Error": 0}},
+            "6mo": {"top_performers": {"Error": 0}, "bottom_performers": {"Error": 0}},
+            "1y": {"top_performers": {"Error": 0}, "bottom_performers": {"Error": 0}}
+        })
 
 @app.route('/api/momentum-durations')
 def momentum_durations():

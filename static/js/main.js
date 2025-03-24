@@ -346,12 +346,33 @@ function App() {
     
     // Handle case where there's an error message in the data
     if (data.error) {
+        // Create fallback data for display to ensure we always show something
+        const fallbackData = {
+            "error": data.error || "Unknown error occurred",
+            "comparison": data.comparison || {
+                "dropped_from_top_10": [],
+                "entered_top_10": [],
+                "full_5d_top_10": [],
+                "full_3mo_top_10": []
+            }
+        };
+        
+        // Ensure all duration data exists
+        durations.forEach(duration => {
+            if (!data[duration]) {
+                data[duration] = {
+                    "top_performers": {"Error": 0},
+                    "bottom_performers": {"Error": 0}
+                };
+            }
+        });
+        
         return (
             <div>
                 <div className="alert alert-warning mb-4">
                     <h4 className="alert-heading">Data Load Issue</h4>
                     <p>{data.error}</p>
-                    <p>Showing partial or fallback data. Some information may be missing.</p>
+                    <p>The Yahoo Finance API seems to be experiencing issues. Showing fallback data or partial results.</p>
                     <div className="mt-3">
                         <button 
                             className="btn btn-primary"
