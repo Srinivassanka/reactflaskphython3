@@ -82,14 +82,26 @@ function StockList({ title, stocks, type }) {
                             </tr>
                         </thead>
                         <tbody>
-                            {Object.entries(stocks).map(([stock, value]) => (
-                                <tr key={stock}>
-                                    <td>{stock}</td>
-                                    <td className={getStockColor(value, type)}>
-                                        {formatPercentage(value)}
-                                    </td>
-                                </tr>
-                            ))}
+                            {Object.entries(stocks)
+                                .sort((a, b) => {
+                                    // For top performers, sort descending (highest first)
+                                    if (type === 'top') {
+                                        return b[1] - a[1]; // b[1] is the value (percentage)
+                                    } 
+                                    // For bottom performers, sort ascending (lowest first)
+                                    else {
+                                        return a[1] - b[1];
+                                    }
+                                })
+                                .map(([stock, value]) => (
+                                    <tr key={stock}>
+                                        <td>{stock}</td>
+                                        <td className={getStockColor(value, type)}>
+                                            {formatPercentage(value)}
+                                        </td>
+                                    </tr>
+                                ))
+                            }
                         </tbody>
                     </table>
                 </div>

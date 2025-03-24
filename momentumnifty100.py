@@ -246,7 +246,8 @@ def get_momentum_data():
                     top_performers = {"No Data": 0}
                     bottom_performers = {"No Data": 0}
                 else:
-                    max_performers = min(20, len(change2))  # Ensure we don't exceed array size
+                    # Limit to exactly 10 stocks (or fewer if not enough data)
+                    max_performers = min(10, len(change2))  # Ensure we don't exceed array size
                     top_performers_series = change2.nlargest(max_performers)
                     bottom_performers_series = change2.nsmallest(max_performers)
                     
@@ -272,10 +273,31 @@ def get_momentum_data():
                             # Remove from top performers if it's more extreme in bottom
                             top_performers_series = top_performers_series.drop(stock)
                     
+                    # Ensure we still have exactly 10 top and bottom performers after removing overlaps
+                    # (if enough stocks are available)
+                    if len(change2) > max_performers and len(top_performers_series) < max_performers:
+                        remaining_stocks = change2.drop(top_performers_series.index).drop(bottom_performers_series.index)
+                        if not remaining_stocks.empty:
+                            additional_needed = max_performers - len(top_performers_series)
+                            additional_top = remaining_stocks.nlargest(additional_needed)
+                            top_performers_series = pd.concat([top_performers_series, additional_top])
+                            
+                    if len(change2) > max_performers and len(bottom_performers_series) < max_performers:
+                        remaining_stocks = change2.drop(top_performers_series.index).drop(bottom_performers_series.index)
+                        if not remaining_stocks.empty:
+                            additional_needed = max_performers - len(bottom_performers_series) 
+                            additional_bottom = remaining_stocks.nsmallest(additional_needed)
+                            bottom_performers_series = pd.concat([bottom_performers_series, additional_bottom])
+                    
+                    # Sort by performance value to ensure correct order
+                    top_performers_series = top_performers_series.sort_values(ascending=False)
+                    bottom_performers_series = bottom_performers_series.sort_values(ascending=True)
+                    
                     top_performers = top_performers_series
                     bottom_performers = bottom_performers_series
                 
                 # Convert pandas Series to dictionary for JSON serialization with percentage values
+                # Use OrderedDict to maintain the sorted order
                 results[duration] = {
                     "top_performers": {stock: round(float(value) * 100, 2) for stock, value in top_performers.items()},
                     "bottom_performers": {stock: round(float(value) * 100, 2) for stock, value in bottom_performers.items()}
