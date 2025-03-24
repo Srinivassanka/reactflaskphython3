@@ -137,12 +137,6 @@ def get_momentum_data():
             # Calculate total return over period
             change2_5d = (change_5d + 1).prod() - 1
             
-        # Get top performers (handling empty or small datasets)
-        if len(change2_5d) == 0:
-            top_10_5d = set()
-        else:
-            top_10_5d = set(change2_5d.nlargest(min(10, len(change2_5d))).index)
-        
         # Same for 3-month data
         data_3mo = safe_download(symbols, period="3mo", interval="1d")
         if data_3mo.empty:
@@ -168,12 +162,43 @@ def get_momentum_data():
             change2_3mo = (change_3mo + 1).prod() - 1
             
         # Get top performers (handling empty or small datasets)
+        if len(change2_5d) == 0:
+            top_10_5d_series = pd.Series()
+            top_10_5d = set()
+        else:
+            top_10_5d_series = change2_5d.nlargest(min(10, len(change2_5d)))
+            top_10_5d = set(top_10_5d_series.index)
+            
         if len(change2_3mo) == 0:
+            top_10_3mo_series = pd.Series()
             top_10_3mo = set()
         else:
-            top_10_3mo = set(change2_3mo.nlargest(min(10, len(change2_3mo))).index)
+            top_10_3mo_series = change2_3mo.nlargest(min(10, len(change2_3mo)))
+            top_10_3mo = set(top_10_3mo_series.index)
+            
+        # Find stocks that would appear in both datasets
+        common_stocks = top_10_5d.intersection(top_10_3mo)
         
-        # Compare the sets
+        # Remove any stocks that may be inconsistent across different timeframes
+        # by ensuring no stock appears in top performers for one period and bottom performers for another
+        if len(change2_5d) > 0 and len(change2_3mo) > 0:
+            bottom_10_5d = set(change2_5d.nsmallest(min(10, len(change2_5d))).index)
+            bottom_10_3mo = set(change2_3mo.nsmallest(min(10, len(change2_3mo))).index)
+            
+            # Find potential inconsistencies - stocks in top of one period but bottom of another
+            inconsistent_5d = top_10_5d.intersection(bottom_10_3mo)
+            inconsistent_3mo = top_10_3mo.intersection(bottom_10_5d)
+            
+            # Remove inconsistent stocks based on which period they have a more extreme value
+            for stock in inconsistent_5d:
+                if abs(change2_5d[stock]) < abs(change2_3mo[stock]):
+                    top_10_5d.remove(stock)
+            
+            for stock in inconsistent_3mo:
+                if abs(change2_3mo[stock]) < abs(change2_5d[stock]):
+                    top_10_3mo.remove(stock)
+        
+        # Compare the sets after removing inconsistencies
         dropped_off = list(top_10_5d - top_10_3mo)
         new_entries = list(top_10_3mo - top_10_5d)
         
@@ -222,8 +247,33 @@ def get_momentum_data():
                     bottom_performers = {"No Data": 0}
                 else:
                     max_performers = min(20, len(change2))  # Ensure we don't exceed array size
-                    top_performers = change2.nlargest(max_performers)
-                    bottom_performers = change2.nsmallest(max_performers)
+                    top_performers_series = change2.nlargest(max_performers)
+                    bottom_performers_series = change2.nsmallest(max_performers)
+                    
+                    # Check for and eliminate duplicates between top and bottom performers
+                    # Convert to sets for efficient lookup
+                    top_symbols = set(top_performers_series.index)
+                    bottom_symbols = set(bottom_performers_series.index)
+                    
+                    # Find overlap (stocks appearing in both lists)
+                    overlap = top_symbols.intersection(bottom_symbols)
+                    
+                    # Remove overlapping stocks based on which list they are more extreme in
+                    for stock in overlap:
+                        # Check absolute value to determine which list the stock is more extreme in
+                        top_value = abs(top_performers_series[stock])
+                        bottom_value = abs(bottom_performers_series[stock])
+                        
+                        # Keep in the list where it's more extreme (higher absolute value)
+                        if top_value >= bottom_value:
+                            # Remove from bottom performers if it's more extreme in top
+                            bottom_performers_series = bottom_performers_series.drop(stock)
+                        else:
+                            # Remove from top performers if it's more extreme in bottom
+                            top_performers_series = top_performers_series.drop(stock)
+                    
+                    top_performers = top_performers_series
+                    bottom_performers = bottom_performers_series
                 
                 # Convert pandas Series to dictionary for JSON serialization with percentage values
                 results[duration] = {
