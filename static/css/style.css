@@ -1,0 +1,62 @@
+/* Additional custom styles */
+
+/* Add some padding and space */
+body {
+    padding-bottom: 20px;
+}
+
+/* Pre tag styling for results */
+pre {
+    white-space: pre-wrap;       /* Since CSS 2.1 */
+    word-wrap: break-word;       /* Internet Explorer 5.5+ */
+    overflow-x: auto;
+}
+
+/* For spinner display during API call */
+.spinner-border {
+    margin-right: 5px;
+}
+
+/* Animation for the result card */
+#resultCard {
+    transition: all 0.3s ease-in-out;
+}
+
+/* Style textarea focus */
+textarea:focus, select:focus {
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* Make the buttons more interactive */
+.btn:hover {
+    transform: translateY(-2px);
+    transition: transform 0.2s;
+}
+
+.btn:active {
+    transform: translateY(0);
+}
+
+/* Add a subtle border to cards */
+.card {
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+.card-header {
+    border-top-left-radius: 8px !important;
+    border-top-right-radius: 8px !important;
+}
+
+/* Better spacing for mobile devices */
+@media (max-width: 767.98px) {
+    .container {
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+    
+    .card-body {
+        padding: 15px;
+    }
+}
