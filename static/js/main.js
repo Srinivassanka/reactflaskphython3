@@ -210,6 +210,33 @@ function App() {
             <div className="alert alert-danger">
                 <h4 className="alert-heading">Error!</h4>
                 <p>{error}</p>
+                <div className="mt-3">
+                    <button 
+                        className="btn btn-primary"
+                        onClick={() => {
+                            setError(null);
+                            setLoading(true);
+                            fetch('/api/momentum-analysis')
+                                .then(response => {
+                                    if (!response.ok) {
+                                        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+                                    }
+                                    return response.json();
+                                })
+                                .then(data => {
+                                    setData(data);
+                                    setLoading(false);
+                                })
+                                .catch(error => {
+                                    console.error('Error:', error);
+                                    setError(error.message || 'An error occurred while fetching data.');
+                                    setLoading(false);
+                                });
+                        }}
+                    >
+                        <i className="fas fa-sync-alt me-2"></i> Retry
+                    </button>
+                </div>
             </div>
         );
     }
@@ -219,6 +246,43 @@ function App() {
             <div className="alert alert-warning">
                 <h4 className="alert-heading">No Data Available</h4>
                 <p>Could not retrieve momentum data. Please try again later.</p>
+                <div className="mt-3">
+                    <button 
+                        className="btn btn-primary"
+                        onClick={() => {
+                            setLoading(true);
+                            fetch('/api/momentum-analysis')
+                                .then(response => {
+                                    if (!response.ok) {
+                                        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+                                    }
+                                    return response.json();
+                                })
+                                .then(data => {
+                                    setData(data);
+                                    setLoading(false);
+                                })
+                                .catch(error => {
+                                    console.error('Error:', error);
+                                    setError(error.message || 'An error occurred while fetching data.');
+                                    setLoading(false);
+                                });
+                        }}
+                    >
+                        <i className="fas fa-sync-alt me-2"></i> Retry
+                    </button>
+                </div>
+            </div>
+        );
+    }
+    
+    // Handle case where there's an error message in the data
+    if (data.error) {
+        return (
+            <div className="alert alert-warning">
+                <h4 className="alert-heading">Data Load Issue</h4>
+                <p>{data.error}</p>
+                <p>Showing partial or fallback data. Some information may be missing.</p>
             </div>
         );
     }
