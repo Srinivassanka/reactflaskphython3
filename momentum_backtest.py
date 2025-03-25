@@ -7,7 +7,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 class MomentumBacktest:
-    def __init__(self, symbols, start_date=None, end_date=None, initial_investment=500000, rebalance_period_days=14):
+    def __init__(self, symbols, start_date=None, end_date=None, initial_investment=500000.0, rebalance_period_days=14):
         """
         Initialize the backtest with parameters
         
@@ -230,13 +230,15 @@ class MomentumBacktest:
             # Move to next rebalance date
             current_date += timedelta(days=self.rebalance_period_days)
         
-        # Calculate final portfolio value
-        final_value = self._calculate_portfolio_value(
-            holdings, 
-            self._find_closest_market_date(self.end_date, market_dates), 
-            cash
-        )
-        
+        # Calculate final portfolio value using the most recent market date
+        # and the final holdings
+        final_market_date = None
+        if self.portfolio_values:
+            final_market_date = self.portfolio_values[-1]['date']
+            final_value = self.portfolio_values[-1]['value']
+        else:
+            final_value = self.initial_investment
+            
         # Calculate overall return
         total_return_pct = (final_value - self.initial_investment) / self.initial_investment * 100
         
@@ -244,15 +246,18 @@ class MomentumBacktest:
         days_held = (datetime.strptime(self.end_date, '%Y-%m-%d') - 
                     datetime.strptime(self.start_date, '%Y-%m-%d')).days
         
-        # Calculate annualized return
-        annualized_return = (((final_value / self.initial_investment) ** (365 / days_held)) - 1) * 100
+        # Calculate annualized return (handle edge cases)
+        if days_held > 0 and self.initial_investment > 0 and final_value > 0:
+            annualized_return = (((final_value / self.initial_investment) ** (365 / days_held)) - 1) * 100
+        else:
+            annualized_return = 0
         
         result = {
-            'initial_investment': self.initial_investment,
-            'final_value': final_value,
-            'total_return_rs': final_value - self.initial_investment,
-            'total_return_pct': total_return_pct,
-            'annualized_return_pct': annualized_return,
+            'initial_investment': float(self.initial_investment),
+            'final_value': float(final_value),
+            'total_return_rs': float(final_value - self.initial_investment),
+            'total_return_pct': float(total_return_pct),
+            'annualized_return_pct': float(annualized_return),
             'days_held': days_held,
             'number_of_rebalances': len(self.rebalance_dates)
         }
