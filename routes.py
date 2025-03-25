@@ -1,9 +1,11 @@
 import json
 import logging
 import traceback
+from datetime import datetime, timedelta
 from flask import request, jsonify, render_template
 from app import app
 import momentumnifty100
+from momentum_backtest import run_momentum_backtest
 
 logger = logging.getLogger(__name__)
 
@@ -294,6 +296,76 @@ def momentum_durations():
     return jsonify({
         "durations": ["5d", "10d", "1mo", "3mo", "6mo", "1y"]
     })
+
+@app.route('/api/momentum-backtest', methods=['GET'])
+def momentum_backtest():
+    """
+    Run a momentum backtest simulation with the specified parameters.
+    
+    Query parameters:
+    - start_date: Optional start date in YYYY-MM-DD format (default: 3 months ago)
+    - end_date: Optional end date in YYYY-MM-DD format (default: today)
+    - initial_investment: Initial investment amount in Rs (default: 500000)
+    - rebalance_period_days: Number of days between rebalances (default: 14)
+    """
+    try:
+        logger.info("Starting momentum backtest")
+        
+        # Get parameters from query string
+        start_date = request.args.get('start_date', None)
+        end_date = request.args.get('end_date', None)
+        
+        # Parse numeric parameters with defaults
+        try:
+            initial_investment = float(request.args.get('initial_investment', 500000))
+        except ValueError:
+            initial_investment = 500000
+            
+        try:
+            rebalance_period_days = int(request.args.get('rebalance_period_days', 14))
+        except ValueError:
+            rebalance_period_days = 14
+        
+        # If no dates provided, use defaults (3 months ago to today)
+        if not end_date:
+            end_date = datetime.now().strftime('%Y-%m-%d')
+            
+        if not start_date:
+            start_date_obj = datetime.now() - timedelta(days=90)
+            start_date = start_date_obj.strftime('%Y-%m-%d')
+        
+        logger.info(f"Running backtest from {start_date} to {end_date} with initial investment Rs {initial_investment:,.2f}")
+        
+        # Use the symbols from momentumnifty100
+        symbols = momentumnifty100.symbols
+        
+        # Run the backtest
+        result = run_momentum_backtest(
+            symbols=symbols,
+            start_date=start_date,
+            end_date=end_date,
+            initial_investment=initial_investment,
+            rebalance_period_days=rebalance_period_days
+        )
+        
+        # Format currency values for display
+        if 'result' in result:
+            result['result']['initial_investment_formatted'] = f"Rs {result['result']['initial_investment']:,.2f}"
+            result['result']['final_value_formatted'] = f"Rs {result['result']['final_value']:,.2f}"
+            result['result']['total_return_rs_formatted'] = f"Rs {result['result']['total_return_rs']:,.2f}"
+            result['result']['total_return_pct_formatted'] = f"{result['result']['total_return_pct']:.2f}%"
+            result['result']['annualized_return_pct_formatted'] = f"{result['result']['annualized_return_pct']:.2f}%"
+        
+        return jsonify(result)
+    
+    except Exception as e:
+        error_message = str(e)
+        stack_trace = traceback.format_exc()
+        logger.error(f"Error in momentum backtest: {error_message}\n{stack_trace}")
+        return jsonify({
+            "error": f"Error running backtest: {error_message}",
+            "result": None
+        }), 500
 
 @app.route('/api/health')
 def health_check():
