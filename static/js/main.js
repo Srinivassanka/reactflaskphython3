@@ -498,6 +498,9 @@ function App() {
     const [loading, setLoading] = React.useState(true);
     const [activeTab, setActiveTab] = React.useState('5d');
     const [error, setError] = React.useState(null);
+    const [backtestResults, setBacktestResults] = React.useState(null);
+    const [backtestLoading, setBacktestLoading] = React.useState(false);
+    const [activeSection, setActiveSection] = React.useState('analysis'); // 'analysis' or 'backtest'
     
     const durations = ["5d", "10d", "1mo", "3mo", "6mo", "1y"];
     
@@ -729,6 +732,38 @@ function App() {
         );
     }
     
+    // Function to handle running backtest
+    const handleRunBacktest = (params) => {
+        setBacktestLoading(true);
+        
+        // Construct query string for API call
+        const queryParams = new URLSearchParams({
+            initial_investment: params.initialInvestment,
+            start_date: params.startDate,
+            end_date: params.endDate,
+            rebalance_period_days: params.rebalancePeriod
+        });
+        
+        fetch(`/api/momentum-backtest?${queryParams.toString()}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(results => {
+                console.log('Backtest results:', results);
+                setBacktestResults(results);
+                setBacktestLoading(false);
+            })
+            .catch(error => {
+                console.error('Error running backtest:', error);
+                setError(`Error running backtest: ${error.message}`);
+                setBacktestLoading(false);
+                showError(`Error running backtest: ${error.message}`);
+            });
+    };
+    
     return (
         <div>
             <div className="alert alert-info mb-4">
@@ -736,37 +771,81 @@ function App() {
                 <p>This analysis tool shows momentum for Nifty 100 stocks across different time periods. It helps identify which stocks are trending up or down based on price movements.</p>
             </div>
             
-            <ComparisonAnalysis comparison={data.comparison} />
+            {/* Navigation tabs for switching between Analysis and Backtest */}
+            <ul className="nav nav-pills mb-4">
+                <li className="nav-item">
+                    <button 
+                        className={`nav-link ${activeSection === 'analysis' ? 'active' : ''}`}
+                        onClick={() => setActiveSection('analysis')}
+                    >
+                        <i className="fas fa-chart-line me-2"></i>
+                        Momentum Analysis
+                    </button>
+                </li>
+                <li className="nav-item">
+                    <button 
+                        className={`nav-link ${activeSection === 'backtest' ? 'active' : ''}`}
+                        onClick={() => setActiveSection('backtest')}
+                    >
+                        <i className="fas fa-calculator me-2"></i>
+                        Backtest Simulation
+                    </button>
+                </li>
+            </ul>
             
-            <div className="card mb-4">
-                <div className="card-header">
-                    <h4><i className="fas fa-chart-line"></i> Momentum Analysis</h4>
-                </div>
-                <div className="card-body">
-                    <ul className="nav nav-tabs" role="tablist">
-                        {durations.map(duration => (
-                            <DurationTab 
-                                key={duration} 
-                                duration={duration} 
-                                data={data[duration]} 
-                                activeTab={activeTab} 
-                                setActiveTab={setActiveTab} 
-                            />
-                        ))}
-                    </ul>
+            {/* Analysis Section */}
+            {activeSection === 'analysis' && (
+                <>
+                    <ComparisonAnalysis comparison={data.comparison} />
                     
-                    <div className="tab-content mt-3">
-                        {durations.map(duration => (
-                            <DurationContent 
-                                key={duration} 
-                                duration={duration} 
-                                data={data[duration]} 
-                                isActive={activeTab === duration} 
-                            />
-                        ))}
+                    <div className="card mb-4">
+                        <div className="card-header">
+                            <h4><i className="fas fa-chart-line"></i> Momentum Analysis</h4>
+                        </div>
+                        <div className="card-body">
+                            <ul className="nav nav-tabs" role="tablist">
+                                {durations.map(duration => (
+                                    <DurationTab 
+                                        key={duration} 
+                                        duration={duration} 
+                                        data={data[duration]} 
+                                        activeTab={activeTab} 
+                                        setActiveTab={setActiveTab} 
+                                    />
+                                ))}
+                            </ul>
+                            
+                            <div className="tab-content mt-3">
+                                {durations.map(duration => (
+                                    <DurationContent 
+                                        key={duration} 
+                                        duration={duration} 
+                                        data={data[duration]} 
+                                        isActive={activeTab === duration} 
+                                    />
+                                ))}
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </div>
+                </>
+            )}
+            
+            {/* Backtest Section */}
+            {activeSection === 'backtest' && (
+                <>
+                    {backtestResults ? (
+                        <BacktestResults 
+                            results={backtestResults} 
+                            onClear={() => setBacktestResults(null)}
+                        />
+                    ) : (
+                        <BacktestForm 
+                            onRunBacktest={handleRunBacktest}
+                            loading={backtestLoading}
+                        />
+                    )}
+                </>
+            )}
         </div>
     );
 }
