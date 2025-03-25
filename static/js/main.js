@@ -1,5 +1,14 @@
 // React Components for Momentum Analysis
 
+// Helper function to format currency values
+function formatCurrency(value) {
+    return new Intl.NumberFormat('en-IN', {
+        style: 'currency',
+        currency: 'INR',
+        maximumFractionDigits: 2
+    }).format(value);
+}
+
 // Helper function to show errors (outside React)
 function showError(message) {
     const errorCard = document.getElementById('errorCard');
@@ -227,6 +236,256 @@ function DurationContent({ duration, data, isActive }) {
                         stocks={data.bottom_performers} 
                         type="bottom"
                     />
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// Backtest Form Component
+function BacktestForm({ onRunBacktest, loading }) {
+    const [initialInvestment, setInitialInvestment] = React.useState(500000);
+    const [startDate, setStartDate] = React.useState('');
+    const [endDate, setEndDate] = React.useState('');
+    const [rebalancePeriod, setRebalancePeriod] = React.useState(14);
+
+    // Calculate default dates (3 months ago to today)
+    React.useEffect(() => {
+        const today = new Date();
+        const threeMonthsAgo = new Date();
+        threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+        
+        setEndDate(today.toISOString().split('T')[0]);
+        setStartDate(threeMonthsAgo.toISOString().split('T')[0]);
+    }, []);
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        
+        onRunBacktest({
+            initialInvestment,
+            startDate,
+            endDate,
+            rebalancePeriod
+        });
+    };
+
+    return (
+        <div className="card mb-4">
+            <div className="card-header bg-primary text-white">
+                <h4 className="mb-0">Momentum Backtest Simulation</h4>
+            </div>
+            <div className="card-body">
+                <p className="mb-3">
+                    Simulate returns from investing in the top 10 momentum stocks with regular rebalancing.
+                </p>
+                <form onSubmit={handleSubmit}>
+                    <div className="row mb-3">
+                        <div className="col-md-6">
+                            <div className="form-group mb-3">
+                                <label htmlFor="initialInvestment" className="form-label">Initial Investment (₹)</label>
+                                <input
+                                    type="number"
+                                    className="form-control"
+                                    id="initialInvestment"
+                                    value={initialInvestment}
+                                    onChange={(e) => setInitialInvestment(Number(e.target.value))}
+                                    min="10000"
+                                    max="10000000"
+                                    step="10000"
+                                    required
+                                />
+                                <small className="form-text text-muted">Amount will be divided equally among top 10 stocks</small>
+                            </div>
+                        </div>
+                        <div className="col-md-6">
+                            <div className="form-group mb-3">
+                                <label htmlFor="rebalancePeriod" className="form-label">Rebalance Period (days)</label>
+                                <select
+                                    className="form-select"
+                                    id="rebalancePeriod"
+                                    value={rebalancePeriod}
+                                    onChange={(e) => setRebalancePeriod(Number(e.target.value))}
+                                    required
+                                >
+                                    <option value="7">Weekly (7 days)</option>
+                                    <option value="14">Bi-weekly (14 days)</option>
+                                    <option value="30">Monthly (30 days)</option>
+                                </select>
+                                <small className="form-text text-muted">How often to rebalance the portfolio</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="row mb-3">
+                        <div className="col-md-6">
+                            <div className="form-group">
+                                <label htmlFor="startDate" className="form-label">Start Date</label>
+                                <input
+                                    type="date"
+                                    className="form-control"
+                                    id="startDate"
+                                    value={startDate}
+                                    onChange={(e) => setStartDate(e.target.value)}
+                                    required
+                                />
+                            </div>
+                        </div>
+                        <div className="col-md-6">
+                            <div className="form-group">
+                                <label htmlFor="endDate" className="form-label">End Date</label>
+                                <input
+                                    type="date"
+                                    className="form-control"
+                                    id="endDate"
+                                    value={endDate}
+                                    onChange={(e) => setEndDate(e.target.value)}
+                                    required
+                                />
+                            </div>
+                        </div>
+                    </div>
+                    <div className="d-grid">
+                        <button
+                            type="submit"
+                            className="btn btn-primary"
+                            disabled={loading}
+                        >
+                            {loading ? (
+                                <>
+                                    <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                    Running Simulation...
+                                </>
+                            ) : (
+                                <>
+                                    <i className="fas fa-chart-line me-2"></i>
+                                    Run Backtest Simulation
+                                </>
+                            )}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+}
+
+// Backtest Results Component
+function BacktestResults({ results, onClear }) {
+    if (!results) return null;
+    
+    const { result, summary, portfolio_values, rebalance_dates } = results;
+    
+    // Format dates to be more readable
+    const formatDate = (dateStr) => {
+        const date = new Date(dateStr);
+        return date.toLocaleDateString('en-IN', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        });
+    };
+    
+    // Extract holdings history if available
+    const holdingsHistory = results.holdings_history || [];
+    
+    return (
+        <div className="card mb-4">
+            <div className="card-header bg-success text-white">
+                <h4 className="mb-0">Backtest Results</h4>
+            </div>
+            <div className="card-body">
+                <div className="row mb-4">
+                    <div className="col-md-6">
+                        <div className="card">
+                            <div className="card-header">
+                                <h5 className="mb-0">Summary</h5>
+                            </div>
+                            <div className="card-body">
+                                <table className="table table-striped">
+                                    <tbody>
+                                        {Object.entries(summary).map(([key, value]) => (
+                                            <tr key={key}>
+                                                <th>{key}</th>
+                                                <td>{value}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="col-md-6">
+                        <div className="card h-100">
+                            <div className="card-header">
+                                <h5 className="mb-0">Performance Details</h5>
+                            </div>
+                            <div className="card-body">
+                                <div className="mb-3">
+                                    <h6>Initial Investment</h6>
+                                    <p className="lead">{result.initial_investment_formatted}</p>
+                                </div>
+                                <div className="mb-3">
+                                    <h6>Final Value</h6>
+                                    <p className={`lead ${result.total_return_pct >= 0 ? 'text-success' : 'text-danger'}`}>
+                                        {result.final_value_formatted}
+                                    </p>
+                                </div>
+                                <div className="mb-3">
+                                    <h6>Total Return</h6>
+                                    <p className={`lead ${result.total_return_pct >= 0 ? 'text-success' : 'text-danger'}`}>
+                                        {result.total_return_rs_formatted} ({result.total_return_pct_formatted})
+                                    </p>
+                                </div>
+                                <div>
+                                    <h6>Annualized Return</h6>
+                                    <p className={`lead ${result.annualized_return_pct >= 0 ? 'text-success' : 'text-danger'}`}>
+                                        {result.annualized_return_pct_formatted}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div className="mb-4">
+                    <h5>Portfolio Value History</h5>
+                    <div className="table-responsive">
+                        <table className="table table-striped table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Portfolio Value</th>
+                                    <th>Change</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {portfolio_values.map((entry, index) => {
+                                    const prevValue = index > 0 ? portfolio_values[index - 1].value : result.initial_investment;
+                                    const change = (entry.value - prevValue) / prevValue * 100;
+                                    
+                                    return (
+                                        <tr key={index}>
+                                            <td>{formatDate(entry.date)}</td>
+                                            <td>{formatCurrency(entry.value)}</td>
+                                            <td className={change >= 0 ? 'text-success' : 'text-danger'}>
+                                                {formatPercentage(change)}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div className="d-grid">
+                    <button
+                        onClick={onClear}
+                        className="btn btn-outline-primary"
+                    >
+                        <i className="fas fa-redo me-2"></i>
+                        Run Another Simulation
+                    </button>
                 </div>
             </div>
         </div>
