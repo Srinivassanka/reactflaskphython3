@@ -388,6 +388,9 @@ function BacktestResults({ results, onClear }) {
     // Extract holdings history if available
     const holdingsHistory = results.holdings_history || [];
     
+    // State for displaying specific rebalance period
+    const [activeRebalanceIndex, setActiveRebalanceIndex] = React.useState(0);
+    
     return (
         <div className="card mb-4">
             <div className="card-header bg-success text-white">
@@ -447,6 +450,82 @@ function BacktestResults({ results, onClear }) {
                     </div>
                 </div>
                 
+                {/* Portfolio Holdings By Rebalance Period Section */}
+                {holdingsHistory.length > 0 && (
+                    <div className="mb-4">
+                        <h5>Portfolio Holdings By Rebalance Period</h5>
+                        <p className="text-muted">
+                            See how the top 10 momentum stocks change with each rebalance period.
+                        </p>
+                        
+                        <div className="mb-3">
+                            <div className="btn-group w-100">
+                                {holdingsHistory.map((period, index) => (
+                                    <button
+                                        key={index}
+                                        className={`btn ${activeRebalanceIndex === index ? 'btn-primary' : 'btn-outline-secondary'}`}
+                                        onClick={() => setActiveRebalanceIndex(index)}
+                                    >
+                                        {index === 0 ? 'Initial' : index + 1}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        
+                        {holdingsHistory[activeRebalanceIndex] && (
+                            <div className="card">
+                                <div className="card-header">
+                                    <h6 className="mb-0">
+                                        Holdings on {formatDate(holdingsHistory[activeRebalanceIndex].date)}
+                                    </h6>
+                                </div>
+                                <div className="card-body p-0">
+                                    <div className="table-responsive">
+                                        <table className="table table-striped table-hover mb-0">
+                                            <thead>
+                                                <tr>
+                                                    <th>Stock</th>
+                                                    <th>Shares</th>
+                                                    <th>Price (₹)</th>
+                                                    <th>Value (₹)</th>
+                                                    <th>% of Portfolio</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {holdingsHistory[activeRebalanceIndex].holdings.map((stock, idx) => (
+                                                    <tr key={idx}>
+                                                        <td>
+                                                            <strong>{stock.symbol.replace('.NS', '')}</strong>
+                                                        </td>
+                                                        <td>{stock.shares.toFixed(2)}</td>
+                                                        <td>{formatCurrency(stock.price)}</td>
+                                                        <td>{formatCurrency(stock.value)}</td>
+                                                        <td>{stock.percentage.toFixed(2)}%</td>
+                                                    </tr>
+                                                ))}
+                                                {holdingsHistory[activeRebalanceIndex].cash > 0 && (
+                                                    <tr>
+                                                        <td><strong>Cash</strong></td>
+                                                        <td>-</td>
+                                                        <td>-</td>
+                                                        <td>{formatCurrency(holdingsHistory[activeRebalanceIndex].cash)}</td>
+                                                        <td>
+                                                            {(holdingsHistory[activeRebalanceIndex].cash / 
+                                                                (holdingsHistory[activeRebalanceIndex].holdings.reduce((sum, stock) => sum + stock.value, 0) + 
+                                                                holdingsHistory[activeRebalanceIndex].cash) * 100).toFixed(2)}%
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+                
+                {/* Portfolio Value History Table */}
                 <div className="mb-4">
                     <h5>Portfolio Value History</h5>
                     <div className="table-responsive">
@@ -477,6 +556,69 @@ function BacktestResults({ results, onClear }) {
                         </table>
                     </div>
                 </div>
+                
+                {/* Holdings Comparison (First vs Last Period) */}
+                {holdingsHistory.length >= 2 && (
+                    <div className="mb-4">
+                        <h5>Composition Change: Initial vs Final</h5>
+                        <div className="row">
+                            <div className="col-md-6">
+                                <div className="card">
+                                    <div className="card-header bg-primary text-white">
+                                        <h6 className="mb-0">Initial Portfolio ({formatDate(holdingsHistory[0].date)})</h6>
+                                    </div>
+                                    <div className="card-body p-0">
+                                        <div className="table-responsive">
+                                            <table className="table table-striped table-sm mb-0">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Stock</th>
+                                                        <th>% of Portfolio</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {holdingsHistory[0].holdings.map((stock, idx) => (
+                                                        <tr key={idx}>
+                                                            <td><strong>{stock.symbol.replace('.NS', '')}</strong></td>
+                                                            <td>{stock.percentage.toFixed(2)}%</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="col-md-6">
+                                <div className="card">
+                                    <div className="card-header bg-success text-white">
+                                        <h6 className="mb-0">Final Portfolio ({formatDate(holdingsHistory[holdingsHistory.length - 1].date)})</h6>
+                                    </div>
+                                    <div className="card-body p-0">
+                                        <div className="table-responsive">
+                                            <table className="table table-striped table-sm mb-0">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Stock</th>
+                                                        <th>% of Portfolio</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {holdingsHistory[holdingsHistory.length - 1].holdings.map((stock, idx) => (
+                                                        <tr key={idx}>
+                                                            <td><strong>{stock.symbol.replace('.NS', '')}</strong></td>
+                                                            <td>{stock.percentage.toFixed(2)}%</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
                 
                 <div className="d-grid">
                     <button

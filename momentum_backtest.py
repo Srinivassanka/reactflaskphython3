@@ -383,11 +383,41 @@ def run_momentum_backtest(
     result = backtest.run_backtest()
     summary = backtest.get_performance_summary()
     
+    # Format the holdings history with readable details
+    formatted_holdings_history = []
+    for entry in backtest.holdings_history:
+        date = entry['date']
+        holdings = entry['holdings']
+        cash = entry['cash']
+        
+        # Format detailed holdings with share count and value
+        stock_details = []
+        for symbol, shares in holdings.items():
+            price = backtest._get_price(symbol, date)
+            value = shares * price
+            stock_details.append({
+                'symbol': symbol,
+                'shares': float(shares),
+                'price': float(price),
+                'value': float(value),
+                'percentage': float(value / (backtest._calculate_portfolio_value(holdings, date, cash)) * 100)
+            })
+        
+        # Sort by value (highest first)
+        stock_details.sort(key=lambda x: x['value'], reverse=True)
+        
+        formatted_holdings_history.append({
+            'date': date,
+            'holdings': stock_details,
+            'cash': float(cash)
+        })
+    
     return {
         'result': result,
         'summary': summary,
         'portfolio_values': backtest.portfolio_values,
-        'rebalance_dates': backtest.rebalance_dates
+        'rebalance_dates': backtest.rebalance_dates,
+        'holdings_history': formatted_holdings_history
     }
 
 if __name__ == "__main__":
